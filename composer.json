@@ -1,0 +1,30 @@
+{
+    "name": "kayalous/social-auth",
+    "description": "Agnostic social auth with most oAuth providers with API and web routes",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Kayalous\\SocialAuth\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Abdulrhman Elkayal",
+            "email": "aelkayal88@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {
+        "php": "^8.0.2",
+        "laravel/framework": "^9.11",
+        "laravel/socialite": "6.x-dev"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Kayalous\\SocialAuth\\RouteServiceProvider"
+            ]
+        }
+    }
+}
