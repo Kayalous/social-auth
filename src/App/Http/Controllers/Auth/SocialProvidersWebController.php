@@ -75,8 +75,8 @@ class SocialProvidersWebController extends Controller
     protected function findOrCreateUser($providerUser, $provider){
         $user = User::where('email', $providerUser->getEmail())->first();
         if ($user) {
-            if(!$user->verified_at){
-                $user->verified_at = now();
+            if(!$user->email_verified_at){
+                $user->email_verified_at = now();
                 $user->save();
             }
             return $user;
