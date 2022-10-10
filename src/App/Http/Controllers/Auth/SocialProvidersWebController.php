@@ -47,23 +47,9 @@ class SocialProvidersWebController extends Controller
             return redirect()->back()->withErrors($exception->getMessage());
         }
 
-        $userCreated = User::firstOrCreate(
-            ['email' => $user->getEmail()],
-            [
-                'email_verified_at' => now(),
-                'name' => $user->getName(),
-                "avatar" => $user->getAvatar()
-            ]
-        );
+        $user = $this->findOrCreateUser($user, $provider);
 
-        $userCreated->socialProviders()->updateOrCreate(
-            [
-                'provider' => $provider,
-                'provider_id' => $user->getId(),
-            ], []
-        );
-
-        Auth::login($userCreated);
+        Auth::login($user);
 
 
         return redirect()->intended();
@@ -79,5 +65,38 @@ class SocialProvidersWebController extends Controller
         if (!in_array($provider, $this->providers)) {
             return redirect()->back()->withErrors('Please login using one of the following: ' . implode(",", $this->providers));
         }
+    }
+
+    /**
+     * @param $providerUser
+     * @param $provider
+     * @return User
+     */
+    protected function findOrCreateUser($providerUser, $provider){
+        $user = User::where('email', $providerUser->getEmail())->first();
+        if ($user) {
+            if(!$user->verified_at){
+                $user->verified_at = now();
+                $user->save();
+            }
+            return $user;
+        }
+
+        $user = User::firstOrCreate(
+            ['email' => $providerUser->getEmail()],
+            [
+                'email_verified_at' => now(),
+                'name' => $providerUser->getName(),
+                "avatar" => $providerUser->getAvatar()
+            ]
+        );
+
+        $user->socialProviders()->updateOrCreate(
+            [
+                'provider' => $provider,
+                'provider_id' => $providerUser->getId(),
+            ], []
+        );
+        return $user;
     }
 }
