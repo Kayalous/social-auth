@@ -87,7 +87,9 @@ class SocialProvidersWebController extends Controller
             [
                 'email_verified_at' => now(),
                 'name' => $providerUser->getName(),
-                "avatar" => $providerUser->getAvatar()
+                "avatar" => $providerUser->getAvatar(),
+                'profile_photo_path' => $providerUser->getAvatar(),
+                'photo' => $providerUser->getAvatar(),
             ]
         );
 
