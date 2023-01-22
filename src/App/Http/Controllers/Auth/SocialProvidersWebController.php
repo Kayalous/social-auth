@@ -62,8 +62,9 @@ class SocialProvidersWebController extends Controller
         } catch (ClientException $exception) {
             return redirect()->back()->withErrors($exception->getMessage());
         }
+        
 
-        if($user->getEmail()) {
+        if(!User::where('email', $user->getEmail())->exists()) {
             if($request['no-create']) {
 
                 return redirect()->to($request['no-create-url'] ?? '/register')->with('error', 'You must create an account to login with ' . $provider . '.');
