@@ -7,6 +7,7 @@ use GuzzleHttp\Exception\ClientException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\URL;
 use Kayalous\SocialAuth\App\Http\Controllers\Controller;
 use Laravel\Socialite\Facades\Socialite;
 use function now;
@@ -23,13 +24,27 @@ class SocialProvidersWebController extends Controller
      * @param $provider
      * @return \Illuminate\Http\RedirectResponse|\Symfony\Component\HttpFoundation\RedirectResponse
      */
-    public function redirectToProvider($provider)
+    public function redirectToProvider($provider, Request $request)
     {
         $validated = $this->validateProvider($provider);
         if (!is_null($validated)) {
             return $validated;
         }
 
+        // if the request has no-create, then we need to add a query string to the redirect url
+        if($request['no-create'])
+
+        {
+            $envName = strtoupper($provider) . '_REDIRECT_URI';
+
+            $baseUrl = URL::to('/') . '/auth/login/' . $provider . '/callback';
+
+            $redirect_to = env($envName, $baseUrl) . '?no-create=' . $request['no-create'] . '&no-create-url=' . $request['no-create-url'];
+
+            return Socialite::redirectUrl($redirect_to)->driver($provider)->redirect();
+
+        }
+        
         return Socialite::driver($provider)->redirect();
     }
 
@@ -41,10 +56,19 @@ class SocialProvidersWebController extends Controller
      */
     public function handleProviderCallback($provider, Request $request)
     {
+
         try {
             $user = Socialite::driver($provider)->user();
         } catch (ClientException $exception) {
             return redirect()->back()->withErrors($exception->getMessage());
+        }
+
+        if($user->getEmail()) {
+            if($request['no-create']) {
+
+                return redirect()->to($request['no-create-url'] ?? '/register')->with('error', 'You must create an account to login with ' . $provider . '.');
+    
+            }        
         }
 
         $user = $this->findOrCreateUser($user, $provider);
@@ -81,6 +105,8 @@ class SocialProvidersWebController extends Controller
             }
             return $user;
         }
+
+        
 
         $user = User::firstOrCreate(
             ['email' => $providerUser->getEmail()],
