@@ -56,18 +56,21 @@ class SocialProvidersWebController extends Controller
      */
     public function handleProviderCallback($provider, Request $request)
     {
+        if(!$provider) {
+            return redirect()->to('login')->withErrors('Please login using one of the following: ' . implode(",", $this->providers));
+        }
 
         try {
             $user = Socialite::driver($provider)->user();
         } catch (ClientException $exception) {
-            return redirect()->back()->withErrors($exception->getMessage());
+            return redirect()->to('login')->withErrors($exception->getMessage());
         }
         
 
         if(!User::where('email', $user->getEmail())->exists()) {
             if($request['no-create']) {
 
-                return redirect()->to($request['no-create-url'] ?? '/register')->with('error', 'You must create an account to login with ' . $provider . '.');
+                return redirect()->to($request['no-create-url'] ?? '/register')->with('warning', 'You must create an account to login with ' . $provider . '.');
     
             }        
         }
@@ -88,7 +91,7 @@ class SocialProvidersWebController extends Controller
     protected function validateProvider($provider)
     {
         if (!in_array($provider, $this->providers)) {
-            return redirect()->back()->withErrors('Please login using one of the following: ' . implode(",", $this->providers));
+            return redirect()->to('login')->withErrors('Please login using one of the following: ' . implode(",", $this->providers));
         }
     }
 
