@@ -68,7 +68,7 @@ class SocialProvidersWebController extends Controller
 
                 Session::forget('no-create');
 
-                return redirect()->to($url)->with('warning', 'You must create an account to login with ' . $provider . '.');
+                return redirect()->to($url)->with('status', 'You must create an account to login with ' . $provider . '.');
     
             }        
         }
