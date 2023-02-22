@@ -7,6 +7,7 @@ use GuzzleHttp\Exception\ClientException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\URL;
 use Kayalous\SocialAuth\App\Http\Controllers\Controller;
 use Laravel\Socialite\Facades\Socialite;
@@ -31,21 +32,12 @@ class SocialProvidersWebController extends Controller
             return $validated;
         }
 
+        Session::put('no-create-url', $request['no-create-url'] ?? null);
+        Session::put('no-create', $request['no-create'] ?? null);
+
         // if the request has no-create, then we need to add a query string to the redirect url
-        if($request['no-create'])
+            return Socialite::driver($provider)->redirect();
 
-        {
-            $envName = strtoupper($provider) . '_REDIRECT_URI';
-
-            $baseUrl = URL::to('/') . '/auth/login/' . $provider . '/callback';
-
-            $redirect_to = env($envName, $baseUrl) . '?no-create=' . $request['no-create'] . '&no-create-url=' . $request['no-create-url'];
-
-            return Socialite::redirectUrl($redirect_to)->driver($provider)->redirect();
-
-        }
-        
-        return Socialite::driver($provider)->redirect();
     }
 
     /**
@@ -68,9 +60,15 @@ class SocialProvidersWebController extends Controller
         
 
         if(!User::where('email', $user->getEmail())->exists()) {
-            if($request['no-create']) {
+            if(Session::get('no-create', "false") == "true") {
 
-                return redirect()->to($request['no-create-url'] ?? '/register')->with('warning', 'You must create an account to login with ' . $provider . '.');
+                $url = Session::get('no-create-url', '/register');
+
+                Session::forget('no-create-url');
+
+                Session::forget('no-create');
+
+                return redirect()->to($url)->with('warning', 'You must create an account to login with ' . $provider . '.');
     
             }        
         }
@@ -78,6 +76,10 @@ class SocialProvidersWebController extends Controller
         $user = $this->findOrCreateUser($user, $provider);
 
         Auth::login($user);
+
+        Session::forget('no-create-url');
+                
+        Session::forget('no-create');
 
 
         return redirect()->intended();
