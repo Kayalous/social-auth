@@ -29,7 +29,12 @@ class SocialProvidersController extends Controller
             return $validated;
         }
 
-        return Socialite::driver($provider)->stateless()->redirect();
+        $redirectResponse = Socialite::driver($provider)->stateless()->redirect();
+        $redirectUrl = $redirectResponse->getTargetUrl();
+        return response()->json([
+            'url' => $redirectUrl,
+            'provider' => $provider
+        ]);
     }
 
     /**
@@ -69,17 +74,17 @@ class SocialProvidersController extends Controller
             [
                 'provider' => $provider,
                 'provider_id' => $user->getId(),
-            ], []
+            ],
+            []
         );
 
         return response()->json([
             'token' => $userCreated->createToken('token-name')->plainTextToken,
             'user' => $userCreated
         ]);
-
     }
 
-/**
+    /**
      * Obtain the user information from Provider.
      *
      * @param $provider
@@ -94,27 +99,13 @@ class SocialProvidersController extends Controller
             return response()->json(['error' => $exception->getMessage()], 422);
         }
 
-        $userCreated = User::firstOrCreate(
-            ['email' => $user->getEmail()],
-            [
-                'email_verified_at' => now(),
-                'name' => $user->getName(),
-                "avatar" => $user->getAvatar()
-            ]
-        );
+        $user = $this->findOrCreateUser($user, $provider);
 
-        $userCreated->socialProviders()->updateOrCreate(
-            [
-                'provider' => $provider,
-                'provider_id' => $user->getId(),
-            ], []
-        );
 
         return response()->json([
-            'token' => $userCreated->createToken('token-name')->plainTextToken,
-            'user' => $userCreated
+            'token' => $user->createToken('auth-token')->plainTextToken,
+            'user' => $user
         ]);
-
     }
 
     /**
@@ -126,5 +117,44 @@ class SocialProvidersController extends Controller
         if (!in_array($provider, $this->providers)) {
             return response()->json(['error' => 'Please login using one of the following: ' . implode(",", $this->providers)], 422);
         }
+    }
+
+    /**
+     * @param $providerUser
+     * @param $provider
+     * @return User
+     */
+    protected function findOrCreateUser($providerUser, $provider)
+    {
+        $user = User::where('email', $providerUser->getEmail())->first();
+        if ($user) {
+            if (!$user->email_verified_at) {
+                $user->email_verified_at = now();
+                $user->save();
+            }
+            return $user;
+        }
+
+
+
+        $user = User::firstOrCreate(
+            ['email' => $providerUser->getEmail()],
+            [
+                'email_verified_at' => now(),
+                'name' => $providerUser->getName(),
+                "avatar" => $providerUser->getAvatar(),
+                'profile_photo_path' => $providerUser->getAvatar(),
+                'photo' => $providerUser->getAvatar(),
+            ]
+        );
+
+        $user->socialProviders()->updateOrCreate(
+            [
+                'provider' => $provider,
+                'provider_id' => $providerUser->getId(),
+            ],
+            []
+        );
+        return $user;
     }
 }
