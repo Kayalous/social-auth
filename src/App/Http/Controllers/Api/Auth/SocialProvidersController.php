@@ -14,7 +14,7 @@ use function response;
 class SocialProvidersController extends Controller
 {
 
-    private $providers = ['facebook', 'apple', 'google', 'github', 'linkedin'];
+    private $providers = ['facebook', 'apple', 'google', 'github', 'linkedin', 'twitter'];
 
     /**
      * Redirect the user to the Provider authentication page.
